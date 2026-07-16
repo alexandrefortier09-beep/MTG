@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Color Pie — Compteur de vie</title>
+<title>MTG on Thursday</title>
 <style>
   :root{ --bg:#0a0b0f; --hub:#15171d; --hub-line:#2a2d36; --txt:#f3f4f6; --muted:#9aa0ab; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; }
@@ -116,8 +116,6 @@
   .sound:active{ transform:scale(.96); }
   .sound.custom{ box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--ac) 95%, #fff); }
   .sound .ic{ font-size:24px; line-height:1; } .sound .lb{ font-size:13px; font-weight:800; margin-top:4px; line-height:1.15; }
-  .sound .cap{ font-size:10px; opacity:.85; margin-top:3px; min-height:12px; max-width:100%;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .sound .edit, .sound .clear{ position:absolute; top:6px; width:24px; height:24px; border-radius:8px;
     display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.32); line-height:1; }
   .sound .edit{ right:6px; font-size:12px; } .sound .clear{ left:6px; font-size:14px; display:none; }
@@ -131,14 +129,13 @@
   .slotfile{ color:#8a93a3; font-size:12px; margin:12px 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .row button.danger{ background:#3a2330; color:#ffb4c4; }
 
-  .die{ font-size:96px; font-weight:800; text-align:center; margin:8px 0 4px; font-variant-numeric:tabular-nums; }
+  .die{ font-size:34px; font-weight:800; text-align:center; margin:16px 0 6px; line-height:1.25;
+    min-height:44px; word-break:break-word; }
   .dlabel{ text-align:center; color:var(--muted); font-size:13px; margin-bottom:18px; }
   .row{ display:flex; gap:10px; margin-top:18px; }
   .row button{ flex:1; appearance:none; border:none; cursor:pointer; height:48px; border-radius:14px; font-size:15px; font-weight:700; color:#fff; background:#2a2e38; }
   .row button.primary{ background:#3f6fb8; }
   .row button:active{ transform:scale(.97); }
-  .legend{ color:#7e8794; font-size:12px; line-height:1.5; margin:14px 0 0; }
-  .legend b{ color:#aeb6c2; }
 
   @media (prefers-reduced-motion: reduce){
     .hbtn:active,.seg button,.sound:active,.row button:active,.cell:active,.poison:active{ transform:none; }
@@ -228,7 +225,7 @@
   <button class="hbtn codechip" id="codeChip" style="display:none;" title="Partie en ligne">----</button>
   <button class="hbtn" id="reset" title="Recommencer">↺</button>
   <button class="hbtn" id="setupBtn" title="Configurer la partie">⚙</button>
-  <button class="hbtn" id="diceBtn" title="Dé">🎲</button>
+  <button class="hbtn" id="diceBtn" title="Qui commence ?">🎲</button>
   <button class="hbtn" id="soundBtn" title="Sons">🎵</button>
 </div>
 
@@ -238,12 +235,6 @@
     <h2>Soundboard</h2>
     <p class="sub">Touche pour jouer · ✎ pour changer l'icône, le titre et le son</p>
     <div class="pad" id="pad"></div>
-    <p class="legend">
-      <b>Sons :</b> touche ✎ sur un bouton pour définir son icône, son titre et charger ton fichier audio (MP3, M4A, WAV, OGG). Tout est sauvegardé sur l'appareil et conservé d'une partie à l'autre.<br>
-      <b>Vie :</b> moitié gauche = −1, moitié droite = +1 (maintenir = rapide).<br>
-      <b>Commander damage :</b> chaque case colorée = un adversaire. Touche = +1, maintiens = −1. Rouge à 21.<br>
-      <b>Poison ☠ :</b> touche = +1, maintiens = −1. Rouge à 10.
-    </p>
     <div class="row"><button onclick="closeOv('soundOv')">Fermer</button></div>
   </div>
 </div>
@@ -266,15 +257,15 @@
   </div>
 </div>
 
-<!-- Dé -->
+<!-- Qui commence ? -->
 <div class="overlay" id="diceOv">
   <div class="sheet">
-    <h2>Dé d20</h2>
-    <p class="sub">Qui commence ?</p>
+    <h2>Qui commence ?</h2>
+    <p class="sub">Tirage au sort parmi les joueurs</p>
     <div class="die" id="dieVal">—</div>
-    <div class="dlabel" id="dieLbl">Touche « Lancer »</div>
+    <div class="dlabel" id="dieLbl">Touche « Tirer au sort »</div>
     <div class="row">
-      <button class="primary" id="rollBtn">Lancer</button>
+      <button class="primary" id="rollBtn">Tirer au sort</button>
       <button onclick="closeOv('diceOv')">Fermer</button>
     </div>
   </div>
@@ -436,13 +427,18 @@ document.getElementById('soundBtn').addEventListener('click', ()=>{ audio(); ope
 document.getElementById('diceBtn').addEventListener('click', ()=> openOv('diceOv'));
 [...document.querySelectorAll('.overlay')].forEach(ov=> ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('open'); }));
 
-/* ===================== Dé d20 ===================== */
+/* ===================== Qui commence ? ===================== */
 const dieVal=document.getElementById('dieVal'), dieLbl=document.getElementById('dieLbl');
+function showPick(p){ dieVal.textContent=p.name; dieVal.style.color=MANA[p.color].ac; }
 document.getElementById('rollBtn').addEventListener('click', ()=>{
+  if(!players.length) return;
   dieLbl.textContent='…';
-  const spin=setInterval(()=>{ dieVal.textContent=1+Math.floor(Math.random()*20); },55);
-  setTimeout(()=>{ clearInterval(spin); const n=1+Math.floor(Math.random()*20); dieVal.textContent=n;
-    dieLbl.textContent = n===20?'Critique !':n===1?'Aïe…':'d20'; if(navigator.vibrate) navigator.vibrate(20); },650);
+  const spin=setInterval(()=>{ showPick(players[Math.floor(Math.random()*players.length)]); },80);
+  setTimeout(()=>{ clearInterval(spin);
+    const w=players[Math.floor(Math.random()*players.length)];
+    showPick(w); dieLbl.textContent='commence la partie';
+    if(navigator.vibrate) navigator.vibrate([25,50,70]);
+  },900);
 });
 
 /* ===================== Audio ===================== */
@@ -544,7 +540,6 @@ function renderSlot(i){
   const c=customSounds[i]||{};
   btn.querySelector('.ic').textContent = c.icon || SOUNDS[i].ic;
   btn.querySelector('.lb').textContent = c.title || SOUNDS[i].lb;
-  btn.querySelector('.cap').textContent = c.name ? c.name.replace(/\.[^.]+$/,'').slice(0,18) : SOUNDS[i].dc;
   btn.classList.toggle('custom', !!(c.icon||c.title||c.buffer));
 }
 async function persistSlot(i){
@@ -590,7 +585,7 @@ const pad=document.getElementById('pad');
 SOUNDS.forEach((s,i)=>{
   const b=document.createElement('button'); b.className='sound'; applyTheme(b,s.col);
   b.innerHTML=`<span class="edit" title="Modifier">✎</span>`+
-              `<div class="ic">${s.ic}</div><div class="lb">${s.lb}</div><div class="cap">${s.dc}</div>`;
+              `<div class="ic">${s.ic}</div><div class="lb">${s.lb}</div>`;
   b.addEventListener('click', ()=> triggerSound(i));
   b.querySelector('.edit').addEventListener('click', e=>{ e.stopPropagation(); openSlotEditor(i); });
   pad.appendChild(b);
